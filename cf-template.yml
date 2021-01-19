@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description:
+  This Cf Template creates Docker machine on EC2 Instance and 
+  deploys Bookstore Web API, Docker Machine will run on AWS...
+
+Parameters:
+  Keyname:
+    Description: Enter the name of yoour Key Pair for SSH Connection.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must one of the existing EC2 ParameterName:
+    
+
+Recources:
+  secGroupName:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: DockerMachineSecurityGroup 
+      GroupDescription: Enable HTTP and SSH for Bookstore Web API 
+      
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        
+  DockerEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      ImageId: ami-0be2609ba883822ec
+      InstanceType: t2-micro
+      SecurityGroupIds:
+        - !GetAtt DockerMachineSecurityGroup.GroupId 
+      Tags:
+        - Key: Name
+          Value: !Sub Docker Machine of ${AWS::StackName}
+      UserData: 
+        Fn::Base64: |
+          #! /bin/bash
+          yum update -y
+          amazon-linux-extras install docker -y
+          systemctl start docker
+          systemctl enable docker
+          usermod -a -G docker ec2-user
+          curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" \
+          -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          mkdir -p /home/ec2-user/bookstore-api
+          TOKEN="c6982378638e7c69225a4e8641b2c21ba6ab7117
+          FOLDER= "https://$TOKEN@raw.githubusercontent.com/ZaferUz/202-dockerization-bookstore-api-on-python-flask-mysql/main/"
+          curl -s --create-dirs -o "/home/ec2-user/bookstore-api/bookstore-api.py" -L "$FOLDER"bookstore-api.py
+          curl -s --create-dirs -o "/home/ec2-user/bookstore-api/requirements.txt" -L "$FOLDER"requirements.txt
+          curl -s --create-dirs -o "/home/ec2-user/bookstore-api/Dockerfile" -L "$FOLDER"Dockerfile
+          curl -s --create-dirs -o "/home/ec2-user/bookstore-api/docker-compose.yml" -L "$FOLDER"docker-compose.yml
+          cd /home/ec2-user/bookstore-api
+          docker build -t "zaferuz/bookstore:latest" .
+          docker-compose up -d
+
+
+Output:
+  WebsiteURL:
+    Description: Bookstore Web API URL
+    Value:!Sub 
+      - http://${PublicAddress}
+      - PublicAddress: !GetAtt DockerMachine.PublicDnsName
+    Export: 
+      Name:
