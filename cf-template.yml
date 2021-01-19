@@ -1,45 +1,42 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description:
-  This Cf Template creates Docker machine on EC2 Instance and 
-  deploys Bookstore Web API, Docker Machine will run on AWS...
 
+Description: >
+  This Cloudformation Template creates a Docker machine on EC2 Instance and
+  deploys Bookstore Web API, Docker Machine will run on Amazon Linux 2
+  EC2 Instance with custom security group allowing HTTP (Port 80) 
+  and SSH (Port 22) connections from anywhere.
 Parameters:
-  Keyname:
-    Description: Enter the name of yoour Key Pair for SSH Connection.
+  KeyPairName:
+    Description: Enter the name of your Key Pair for SSH connections.
     Type: AWS::EC2::KeyPair::KeyName
-    ConstraintDescription: Must one of the existing EC2 ParameterName:
-    
+    ConstraintDescription: Must one of the existing EC2 KeyPair
 
-Recources:
-  secGroupName:
+Resources:
+  DockerMachineSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: DockerMachineSecurityGroup 
-      GroupDescription: Enable HTTP and SSH for Bookstore Web API 
-      
+      GroupDescription: Enable HTTP and SSH for Bookstore Web API
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-        
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        
-  DockerEC2Instance:
+  DockerMachine:
     Type: AWS::EC2::Instance
     Properties:
-      KeyName: !Ref KeyName
-      ImageId: ami-0be2609ba883822ec
-      InstanceType: t2-micro
+      ImageId: ami-09d95fab7fff3776c
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPairName
       SecurityGroupIds:
-        - !GetAtt DockerMachineSecurityGroup.GroupId 
+        - !GetAtt DockerMachineSecurityGroup.GroupId
       Tags:
         - Key: Name
           Value: !Sub Docker Machine of ${AWS::StackName}
-      UserData: 
+      UserData:
         Fn::Base64: |
           #! /bin/bash
           yum update -y
@@ -61,10 +58,9 @@ Recources:
           docker build -t "zaferuz/bookstore:latest" .
           docker-compose up -d
 
-
-Output:
+Outputs:
   WebsiteURL:
     Description: Bookstore Web API URL
-    Value:!Sub 
+    Value: !Sub
       - http://${PublicAddress}
       - PublicAddress: !GetAtt DockerMachine.PublicDnsName
