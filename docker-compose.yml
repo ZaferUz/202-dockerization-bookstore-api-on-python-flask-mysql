@@ -1,6 +1,6 @@
 version: "3.7"
 
-service: 
+services: 
   database:
     image: mysql:5.7
     environment :
