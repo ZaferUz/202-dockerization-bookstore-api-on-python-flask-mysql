@@ -12,7 +12,7 @@ services:
       - clarusnet
 
   my-app:
-    image: zaferuz/bookstore:lastest
+    image: zaferuz/bookstore:latest
     restart: always
     depends_on:
       - database
