@@ -14,7 +14,7 @@ service:
   my-app:
     image: zaferuz/bookstore:lastest
     restart: always
-    depends-on:
+    depends_on:
       - database
     ports: 
       - "80":"80"
