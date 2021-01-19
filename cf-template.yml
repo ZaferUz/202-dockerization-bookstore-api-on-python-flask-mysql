@@ -68,5 +68,3 @@ Output:
     Value:!Sub 
       - http://${PublicAddress}
       - PublicAddress: !GetAtt DockerMachine.PublicDnsName
-    Export: 
-      Name:
